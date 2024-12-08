@@ -115,20 +115,7 @@ async function runPython(
     globals: globals ? self.pyodide.toPy(globals) : undefined,
   };
   // NEW: Added try/catch block for error handling
-  try {
-    return await self.pyodide.runPythonAsync(code, options);
-  } catch (err) {
-    if (err instanceof Error) {
-      const lines = err.message.split("\n");
-      const cleanedLines = lines.filter((line) => !line.includes('File "<exec>"'));
-      const errorMessage = cleanedLines.join("\n");
-      if (_output) {
-        _output(errorMessage);
-      }
-      throw new Error(errorMessage);
-    }
-    throw err;
-  }
+  return await self.pyodide.runPythonAsync(code, options);
 }
 
 // NEW: Added setOutput function
