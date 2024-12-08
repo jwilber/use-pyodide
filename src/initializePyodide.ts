@@ -1,5 +1,4 @@
 import { logElapsedTime } from "@holdenmatt/ts-utils";
-
 import { initializeWorker, Pyodide } from "./pyodide-api";
 import { DEBUG, setDebug } from "./config";
 
@@ -12,14 +11,19 @@ let pyodide: Promise<Pyodide> | undefined;
  * @param packages Additional python package names to load.
  */
 export async function initializePyodide(options?: {
-  debug: boolean;
+  debug?: boolean;
   packages?: string[];
+  // NEW: Added stdout/stderr options
+  stdout?: (text: string) => void;
+  stderr?: (text: string) => void;
 }): Promise<Pyodide> {
-  const { debug = false, packages } = options || {};
-  setDebug(debug)
-
+  // NEW: Destructured stdout and stderr from options
+  const { debug = false, packages, stdout, stderr } = options || {};
+  setDebug(debug);
   if (pyodide === undefined) {
-    pyodide = _initializePyodide(packages);
+    // NEW: Only pass stdout/stderr if they exist
+    const workerOptions = stdout || stderr ? { stdout, stderr } : undefined;
+    pyodide = _initializePyodide(packages, workerOptions);
   }
   return pyodide;
 }
@@ -27,11 +31,17 @@ export async function initializePyodide(options?: {
 /**
  * Initialize Pyodide, and load any given packages.
  */
-const _initializePyodide = async (packages?: string[]): Promise<Pyodide> => {
+const _initializePyodide = async (
+  packages?: string[],
+  // NEW: Added options parameter
+  options?: {
+    stdout?: (text: string) => void;
+    stderr?: (text: string) => void;
+  }
+): Promise<Pyodide> => {
   const start = performance.now();
-
-  pyodide = initializeWorker(packages);
-
+  // NEW: Pass options to initializeWorker only if they exist
+  pyodide = initializeWorker(packages, options);
   DEBUG && logElapsedTime("Pyodide initialized", start);
   return pyodide;
 };
@@ -42,10 +52,17 @@ const _initializePyodide = async (packages?: string[]): Promise<Pyodide> => {
  * Typically `usePyodide` is used in React components instead, but this
  * method provides access outside of React contexts.
  */
-export const getPyodide = async (): Promise<Pyodide> => {
+export const getPyodide = async (
+  // NEW: Added options parameter
+  options?: {
+    stdout?: (text: string) => void;
+    stderr?: (text: string) => void;
+  }
+): Promise<Pyodide> => {
   if (pyodide) {
     return pyodide;
   } else {
-    return await initializePyodide();
+    // NEW: Pass options to initializePyodide
+    return await initializePyodide(options);
   }
 };
